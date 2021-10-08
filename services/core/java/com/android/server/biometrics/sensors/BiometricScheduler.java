@@ -268,6 +268,7 @@ public class BiometricScheduler {
     @VisibleForTesting @NonNull final Deque<Operation> mPendingOperations;
     @VisibleForTesting @Nullable Operation mCurrentOperation;
     @NonNull private final ArrayDeque<CrashState> mCrashStates;
+	private boolean mCancelOperationIfIdle;
 
     private int mTotalOperationsHandled;
     private final int mRecentOperationsLimit;
@@ -352,6 +353,8 @@ public class BiometricScheduler {
         mRecentOperationsLimit = recentOperationsLimit;
         mRecentOperations = new ArrayList<>();
         mCoexCoordinator = coexCoordinator;
+		mCancelOperationIfIdle = context.getResources().getBoolean(
+                 com.android.internal.R.bool.config_CancelOperationIfIdle);
     }
 
     /**
@@ -383,8 +386,16 @@ public class BiometricScheduler {
 
     protected void startNextOperationIfIdle() {
         if (mCurrentOperation != null) {
-            Slog.v(getTag(), "Not idle, current operation: " + mCurrentOperation);
-            return;
+			if(mCancelOperationIfIdle)
+			{
+				Slog.v(getTag(), "Not idle, cancelling current operation: " + mCurrentOperation);
+				cancelInternal(mCurrentOperation);
+			}
+			else
+			{
+			    Slog.v(getTag(), "Not idle, current operation: " + mCurrentOperation);
+				return;
+			}
         }
         if (mPendingOperations.isEmpty()) {
             Slog.d(getTag(), "No operations, returning to idle");
