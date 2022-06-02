@@ -692,9 +692,6 @@ public class PackageInstaller {
     public void uninstall(@NonNull VersionedPackage versionedPackage, @DeleteFlags int flags,
             @NonNull IntentSender statusReceiver) {
         Objects.requireNonNull(versionedPackage, "versionedPackage cannot be null");
-        if (GmsCompat.isPlayStore()) {
-            statusReceiver = PlayStoreHooks.wrapPackageInstallerStatusReceiver(statusReceiver);
-        }
         try {
             mInstaller.uninstall(versionedPackage, mInstallerPackageName,
                     flags, statusReceiver, mUserId);
@@ -1315,7 +1312,7 @@ public class PackageInstaller {
          */
         public void commit(@NonNull IntentSender statusReceiver) {
             if (GmsCompat.isPlayStore()) {
-                statusReceiver = PlayStoreHooks.wrapPackageInstallerStatusReceiver(statusReceiver);
+                statusReceiver = PlayStoreHooks.commitSession(statusReceiver);
             }
             try {
                 mSession.commit(statusReceiver, false);
@@ -1434,6 +1431,18 @@ public class PackageInstaller {
         public boolean isStaged() {
             try {
                 return mSession.isStaged();
+            } catch (RemoteException e) {
+                throw e.rethrowFromSystemServer();
+            }
+        }
+
+        /**
+         * @return Session's {@link SessionParams#installFlags}.
+         * @hide
+         */
+        public int getInstallFlags() {
+            try {
+                return mSession.getInstallFlags();
             } catch (RemoteException e) {
                 throw e.rethrowFromSystemServer();
             }
